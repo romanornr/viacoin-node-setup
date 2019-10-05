@@ -20,6 +20,11 @@ fi
 touch $CONF
 echo "server=1" >> $CONF
 echo "txindex=1" >> $CONF
-echo "rpcallowip=*" >> $CONF
+echo "rpcallowip=0.0.0.0/24" >> $CONF
 echo "rpcuser=via" >> $CONF
 echo "rpcpassword=via" >> $CONF
+echo "addnode=118.209.110.211" >> $CONF
+echo "addnode=118.209.111.44" >> $CONF
+echo "addnode=184.95.48.202" >> $CONF
+echo "addnode=24.50.182.181" >> $CONF
+echo "addnode=81.187.211.49" >> $CONF

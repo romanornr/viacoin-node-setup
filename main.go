@@ -21,7 +21,8 @@ func main() {
 
 	fmt.Println(homepath)
 	//DownloadBinaries()
-	untar()
+	//untar()
+	sync()
 
 }
 
@@ -76,4 +77,11 @@ Loop:
 
 func untar() {
 	exec.Command("/bin/sh", "untar.sh").Run()
+}
+
+func sync() {
+	fmt.Println("Restarting viacoind")
+	exec.Command("/bin/sh", "start.sh").Run()
+	time.Sleep(time.Minute * 10)
+	exec.Command("/bin/sh", "stop.sh").Run()
 }

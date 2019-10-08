@@ -1,3 +1,4 @@
 viacoin-0.16.3-x86_64-linux-gnu.tar.gz
 viacoin-0.16.3/*
 vendor/
+.idea/

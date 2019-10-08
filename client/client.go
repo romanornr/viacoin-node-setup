@@ -14,8 +14,8 @@ func GetInstance() *rpcclient.Client {
 	}
 
 	var err error
-	conCfg := loadConfig
-	instance, err = rpcclient.New(conCfg, nil, nil)
+	conCfg := loadConfig()
+	instance, err = rpcclient.New(conCfg,  nil)
 	if err != nil {
 		log.Fatal(err)
 		instance.Shutdown()

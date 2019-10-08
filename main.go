@@ -8,8 +8,10 @@ import (
 	"runtime"
 	"time"
 
+	log "github.com/Sirupsen/logrus"
+	"github.com/romanornr/viacoin-node-setup/client"
+
 	"github.com/cavaliercoder/grab"
-	"github.com/romanornr/client"
 )
 
 func main() {
@@ -22,7 +24,7 @@ func main() {
 
 	fmt.Println(homepath)
 	//DownloadBinaries()
-	//untar()
+	untar()
 	sync()
 
 }
@@ -82,13 +84,27 @@ func untar() {
 
 func sync() {
 	fmt.Println("Restarting viacoind")
-	exec.Command("/bin/sh", "start.sh").Run()
-	time.Sleep(time.Second * 10)
+	exec.Command("/bin/sh", "start.sh").Run() // blocking. Needs fix
+	fmt.Println("givging 5 minutes to start up")
+	time.Sleep(time.Minute * 5)
+
 	rpcclient := client.GetInstance()
 
+	blocktemplate, err := rpcclient.GetBlockChainInfo()
 	if err != nil {
-		fmt.Errorf("Getting blockcount failed: %\n", blockcount)
+		log.Errorf("%s\n")
 	}
+	log.Info("chain: %s \n", blocktemplate.Chain)
+
+	blockcount, err := rpcclient.GetBlockCount()
+	if err != nil {
+		fmt.Errorf("getting blockcount failed: %s \n", err)
+	}
+	log.Infof("viacoin blockcount %d \n", blockcount)
+
+	time.Sleep(time.Minute * 5)
+
+	log.Infof("viacoin blockcount %d \n", blockcount)
 
 	exec.Command("/bin/sh", "stop.sh").Run()
 }

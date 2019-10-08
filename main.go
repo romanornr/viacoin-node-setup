@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/cavaliercoder/grab"
+	"github.com/romanornr/client"
 )
 
 func main() {
@@ -82,6 +83,12 @@ func untar() {
 func sync() {
 	fmt.Println("Restarting viacoind")
 	exec.Command("/bin/sh", "start.sh").Run()
-	time.Sleep(time.Minute * 10)
+	time.Sleep(time.Second * 10)
+	rpcclient := client.GetInstance()
+
+	if err != nil {
+		fmt.Errorf("Getting blockcount failed: %\n", blockcount)
+	}
+
 	exec.Command("/bin/sh", "stop.sh").Run()
 }

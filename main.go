@@ -99,7 +99,7 @@ func syncNode() {
 
 	// blocks added in the sync progress. Close Viacoind and these blocks will be saved
 	// without the need to resync
-	blocksToAddInDisk := 10000 + blockcount
+	blocksToAddInDisk := 100000 + blockcount
 	tip := 6834361
 
 	for {
@@ -122,14 +122,14 @@ func syncNode() {
 		return // return to block stop.sh from executing
 	}
 
-	log.Info("Stopping Viacoind")
+	log.Info("Stopping Viacoind & saving all blocks")
+	//rpcclient.Shutdown()
 	wg.Add(1)
 	go func() {
 		exec.Command("/bin/sh", "stop.sh").Run()
 		wg.Done()
 	}()
-	wg.Wait()
-
+	time.Sleep(time.Minute * 1) // gracefully shutdown
 	syncNode()
 }
 

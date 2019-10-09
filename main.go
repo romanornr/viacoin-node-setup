@@ -99,7 +99,7 @@ func syncNode() {
 
 	// blocks added in the sync progress. Close Viacoind and these blocks will be saved
 	// without the need to resync
-	blocksToAddInDisk := 100000 + blockcount
+	blocksToAddInDisk := 500000 + blockcount
 	tip := 6834361
 
 	for {
@@ -112,14 +112,16 @@ func syncNode() {
 		log.Infof("viacoin blockcount %d: synced %.2f %s", blockcount, completion, "%")
 		time.Sleep(time.Second * 10)
 
-		// if enough blocks got synced, close viacoind
+		if SyncCompleted(blockcount) {
+			return // return to block stop.sh from executing
+
+		}
+
+		// if enough blocks got synced, get out of the loop
+		// and close viacoind
 		if blockcount > blocksToAddInDisk {
 			break
 		}
-	}
-
-	if SyncCompleted(blockcount) {
-		return // return to block stop.sh from executing
 	}
 
 	log.Info("Stopping Viacoind & saving all blocks")
@@ -129,7 +131,7 @@ func syncNode() {
 		exec.Command("/bin/sh", "stop.sh").Run()
 		wg.Done()
 	}()
-	time.Sleep(time.Minute * 1) // gracefully shutdown
+	time.Sleep(time.Second * 30) // gracefully shutdown
 	syncNode()
 }
 

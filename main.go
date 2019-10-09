@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"runtime"
 	"time"
 
 	"github.com/btcsuite/btcd/rpcclient"
@@ -18,13 +17,13 @@ import (
 
 func main() {
 
-	homepath := ""
+	// homepath := ""
 
-	if runtime.GOOS == "linux" {
-		homepath = "~/.viacoin2"
-	}
+	// if runtime.GOOS == "linux" {
+	// 	homepath = "~/.viacoin2"
+	// }
 
-	fmt.Println(homepath)
+	// fmt.Println(homepath)
 	//DownloadBinaries()
 	untar()
 	syncNode()
@@ -87,7 +86,7 @@ func untar() {
 func syncNode() {
 
 	rpcclient := client.GetInstance()
-	runDaemon(rpcclient)
+	getBlockCount(rpcclient)
 
 	blockcount, err := rpcclient.GetBlockCount()
 	if err != nil {
@@ -101,7 +100,7 @@ func syncNode() {
 	tip := 6834361
 
 	for {
-		blockcount, err := rpcclient.GetBlockCount()
+		blockcount, err := getBlockCount(rpcclient)
 		if err != nil {
 			fmt.Errorf("getting blockcount failed: %s \n", err)
 		}
@@ -124,8 +123,11 @@ func syncNode() {
 	exec.Command("/bin/sh", "stop.sh").Run()
 }
 
-func runDaemon(rpcclient *rpcclient.Client) {
-	_, err := rpcclient.GetBlockCount()
+// this function will get the blockcount but if it seems like
+// the daemon is not running or crashed, it will restart the daemon and keep
+// trying to make a connection and output the blockcount back
+func getBlockCount(rpcclient *rpcclient.Client) (int64, error) {
+	blockcount, err := rpcclient.GetBlockCount()
 	if err != nil {
 		fmt.Println("Viacoind was not running, starting it now")
 		log.Errorf("%s\n", err)
@@ -149,7 +151,9 @@ func runDaemon(rpcclient *rpcclient.Client) {
 				break
 			}
 		}
+		return blockcount, nil
 	}
+	return blockcount, nil
 }
 
 // imagine the tip is equal the blockcount

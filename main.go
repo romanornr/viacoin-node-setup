@@ -6,8 +6,9 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	"sync"
 	"time"
+
+	"github.com/btcsuite/btcd/rpcclient"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/romanornr/viacoin-node-setup/client"
@@ -85,26 +86,8 @@ func untar() {
 
 func syncNode() {
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	fmt.Println("Restarting viacoind")
-
-	go func() {
-		defer wg.Done()
-		//exec.Command("/bin/sh", "start.sh").Run() // blocking. Needs fix
-		fmt.Println("givging 5 minutes to start up")
-	}()
-
-	time.Sleep(time.Second * 2)
-
 	rpcclient := client.GetInstance()
-
-	_, err := rpcclient.GetBlockChainInfo()
-	if err != nil {
-		log.Errorf("%s\n", err) // viacoind could not have started yet and it's loadin block index
-		// When this happens we need to make sure it started
-	}
+	runDaemon(rpcclient)
 
 	blockcount, err := rpcclient.GetBlockCount()
 	if err != nil {
@@ -141,12 +124,39 @@ func syncNode() {
 	exec.Command("/bin/sh", "stop.sh").Run()
 }
 
+func runDaemon(rpcclient *rpcclient.Client) {
+	_, err := rpcclient.GetBlockCount()
+	if err != nil {
+		fmt.Println("Viacoind was not running, starting it now")
+		log.Errorf("%s\n", err)
+		// viacoind could not have started yet and it's loadin block index
+		// When this happens we need to make sure it started
+		log.Warn("Viacoind needs 5 minutes to load block index & sync headers")
+		log.Warn("This can take longer or shorter depending on the server hardware")
+		go func() {
+			exec.Command("/bin/sh", "start.sh").Run() // blocking. Needs fixtime.Sleep(time.Minute * 5)
+		}()
+
+		//keep checking every 10 seconds
+		for {
+			_, err := rpcclient.GetBlockCount()
+			if err != nil {
+				time.Sleep(time.Second * 10)
+			}
+
+			if err == nil {
+				break
+			}
+		}
+	}
+}
+
 // imagine the tip is equal the blockcount
 // We dont' want viacoind to stop running
 // instead do a return to escape the function
 func SyncCompleted(blockcount int64) bool {
-	//tip := 6834361
-	tip := blockcount
+	tip := 6834361
+	//tip := blockcount
 	if blockcount >= int64(tip) {
 		log.Info("Chain fully synced")
 		return true

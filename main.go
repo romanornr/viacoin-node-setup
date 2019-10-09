@@ -131,7 +131,7 @@ func runDaemon(rpcclient *rpcclient.Client) {
 		log.Errorf("%s\n", err)
 		// viacoind could not have started yet and it's loadin block index
 		// When this happens we need to make sure it started
-		log.Warn("Viacoind needs 5 minutes to load block index & sync headers")
+		log.Warn("Viacoind will load block index & sync headers")
 		log.Warn("This can take longer or shorter depending on the server hardware")
 		go func() {
 			exec.Command("/bin/sh", "start.sh").Run() // blocking. Needs fixtime.Sleep(time.Minute * 5)
@@ -141,6 +141,7 @@ func runDaemon(rpcclient *rpcclient.Client) {
 		for {
 			_, err := rpcclient.GetBlockCount()
 			if err != nil {
+				log.Warn(err)
 				time.Sleep(time.Second * 10)
 			}
 

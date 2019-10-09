@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"sync"
 	"time"
 
 	"github.com/btcsuite/btcd/rpcclient"
@@ -85,6 +86,8 @@ func untar() {
 
 func syncNode() {
 
+	var wg sync.WaitGroup
+
 	rpcclient := client.GetInstance()
 	getBlockCount(rpcclient)
 
@@ -96,7 +99,7 @@ func syncNode() {
 
 	// blocks added in the sync progress. Close Viacoind and these blocks will be saved
 	// without the need to resync
-	blocksToAddInDisk := 100000 + blockcount
+	blocksToAddInDisk := 10000 + blockcount
 	tip := 6834361
 
 	for {
@@ -120,7 +123,13 @@ func syncNode() {
 	}
 
 	log.Info("Stopping Viacoind")
-	exec.Command("/bin/sh", "stop.sh").Run()
+	wg.Add(1)
+	go func() {
+		exec.Command("/bin/sh", "stop.sh").Run()
+		wg.Done()
+	}()
+	wg.Wait()
+
 	syncNode()
 }
 

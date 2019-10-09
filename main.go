@@ -148,10 +148,9 @@ func getBlockCount(rpcclient *rpcclient.Client) (int64, error) {
 			}
 
 			if err == nil {
-				break
+				return blockcount, nil
 			}
 		}
-		return blockcount, nil
 	}
 	return blockcount, nil
 }

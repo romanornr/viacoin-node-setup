@@ -20,6 +20,7 @@ fi
 touch $CONF
 echo "server=1" >> $CONF
 echo "txindex=1" >> $CONF
+echo "daemon=1" >> $CONF
 echo "rpcallowip=0.0.0.0/24" >> $CONF
 echo "rpcuser=via" >> $CONF
 echo "rpcpassword=via" >> $CONF

@@ -127,24 +127,29 @@ func syncNode() {
 		log.Infof("viacoin blockcount %d: synced %.2f %s", blockcount, completion, "%")
 		time.Sleep(time.Second * 10)
 
-		// imagine the tip is equal the blockcount.
-		// We dont' want viacoind to stop running
-		// instead do a return to escape the function
-
-		// tip := blockcount
-		// if blockcount >= int64(tip) {
-		// 	log.Info("Chain fully synced")
-		// 	return
-		// }
-
-		// log.Warn("Chain not fully synced")
-
 		// if enough blocks got synced, close viacoind
 		if blockcount > blocksToAddInDisk {
 			break
 		}
 	}
 
+	if SyncCompleted(blockcount) {
+		return // return to block stop.sh from executing
+	}
+
 	log.Info("Stopping Viacoind")
 	exec.Command("/bin/sh", "stop.sh").Run()
+}
+
+// imagine the tip is equal the blockcount
+// We dont' want viacoind to stop running
+// instead do a return to escape the function
+func SyncCompleted(blockcount int64) bool {
+	//tip := 6834361
+	tip := blockcount
+	if blockcount >= int64(tip) {
+		log.Info("Chain fully synced")
+		return true
+	}
+	return false
 }

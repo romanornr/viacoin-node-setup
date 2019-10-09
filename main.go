@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"sync"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -25,7 +26,7 @@ func main() {
 	fmt.Println(homepath)
 	//DownloadBinaries()
 	untar()
-	sync()
+	syncNode()
 
 }
 
@@ -82,19 +83,28 @@ func untar() {
 	exec.Command("/bin/sh", "untar.sh").Run()
 }
 
-func sync() {
+func syncNode() {
+
+	var wg sync.WaitGroup
+	wg.Add(1)
+
 	fmt.Println("Restarting viacoind")
-	exec.Command("/bin/sh", "start.sh").Run() // blocking. Needs fix
-	fmt.Println("givging 5 minutes to start up")
-	time.Sleep(time.Minute * 5)
+
+	go func() {
+		defer wg.Done()
+		//exec.Command("/bin/sh", "start.sh").Run() // blocking. Needs fix
+		fmt.Println("givging 5 minutes to start up")
+	}()
+
+	time.Sleep(time.Second * 2)
 
 	rpcclient := client.GetInstance()
 
-	blocktemplate, err := rpcclient.GetBlockChainInfo()
+	_, err := rpcclient.GetBlockChainInfo()
 	if err != nil {
-		log.Errorf("%s\n")
+		log.Errorf("%s\n", err) // viacoind could not have started yet and it's loadin block index
+		// When this happens we need to make sure it started
 	}
-	log.Info("chain: %s \n", blocktemplate.Chain)
 
 	blockcount, err := rpcclient.GetBlockCount()
 	if err != nil {
@@ -102,9 +112,39 @@ func sync() {
 	}
 	log.Infof("viacoin blockcount %d \n", blockcount)
 
-	time.Sleep(time.Minute * 5)
+	// blocks added in the sync progress. Close Viacoind and these blocks will be saved
+	// without the need to resync
+	blocksToAddInDisk := 100000 + blockcount
+	tip := 6834361
 
-	log.Infof("viacoin blockcount %d \n", blockcount)
+	for {
+		blockcount, err := rpcclient.GetBlockCount()
+		if err != nil {
+			fmt.Errorf("getting blockcount failed: %s \n", err)
+		}
 
+		completion := float32(100) / float32(tip) * float32(blockcount)
+		log.Infof("viacoin blockcount %d: synced %.2f %s", blockcount, completion, "%")
+		time.Sleep(time.Second * 10)
+
+		// imagine the tip is equal the blockcount.
+		// We dont' want viacoind to stop running
+		// instead do a return to escape the function
+
+		// tip := blockcount
+		// if blockcount >= int64(tip) {
+		// 	log.Info("Chain fully synced")
+		// 	return
+		// }
+
+		// log.Warn("Chain not fully synced")
+
+		// if enough blocks got synced, close viacoind
+		if blockcount > blocksToAddInDisk {
+			break
+		}
+	}
+
+	log.Info("Stopping Viacoind")
 	exec.Command("/bin/sh", "stop.sh").Run()
 }

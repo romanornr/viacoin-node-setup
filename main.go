@@ -121,6 +121,7 @@ func syncNode() {
 
 	log.Info("Stopping Viacoind")
 	exec.Command("/bin/sh", "stop.sh").Run()
+	syncNode()
 }
 
 // this function will get the blockcount but if it seems like

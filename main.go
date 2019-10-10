@@ -5,16 +5,20 @@ package main
 
 import (
 	"fmt"
-	"github.com/romanornr/viacoin-node-setup/binaries"
 	"os/exec"
 	"sync"
 	"time"
+
+	"github.com/romanornr/viacoin-node-setup/binaries"
 
 	"github.com/btcsuite/btcd/rpcclient"
 
 	log "github.com/Sirupsen/logrus"
 	"github.com/romanornr/viacoin-node-setup/client"
 )
+
+// latest block
+const TIP = 68343610
 
 func main() {
 
@@ -36,18 +40,11 @@ func syncNode() {
 	var wg sync.WaitGroup
 
 	rpcclient := client.GetInstance()
-	getBlockCount(rpcclient)
-
-	blockcount, err := rpcclient.GetBlockCount()
-	if err != nil {
-		fmt.Errorf("getting blockcount failed: %s \n", err)
-	}
-	log.Infof("viacoin blockcount %d \n", blockcount)
+	blockcount, _ := getBlockCount(rpcclient)
 
 	// blocks added in the sync progress. Close Viacoind and these blocks will be saved
 	// without the need to resync
 	blocksToAddInDisk := 500000 + blockcount
-	tip := 6834361
 
 	for {
 		blockcount, err := getBlockCount(rpcclient)
@@ -55,7 +52,7 @@ func syncNode() {
 			fmt.Errorf("getting blockcount failed: %s \n", err)
 		}
 
-		completion := float32(100) / float32(tip) * float32(blockcount)
+		completion := float32(100) / float32(TIP) * float32(blockcount)
 		log.Infof("viacoin blockcount %d: synced %.2f %s", blockcount, completion, "%")
 		time.Sleep(time.Second * 10)
 
@@ -72,7 +69,7 @@ func syncNode() {
 	}
 
 	log.Info("Stopping Viacoind & saving all blocks")
-	//rpcclient.Shutdown()
+	log.Warnf("blocks to add to disk: %d\n", blocksToAddInDisk)
 	wg.Add(1)
 	go func() {
 		exec.Command("/bin/sh", "stop.sh").Run()
@@ -86,31 +83,25 @@ func syncNode() {
 // the daemon is not running or crashed, it will restart the daemon and keep
 // trying to make a connection and output the blockcount back
 func getBlockCount(rpcclient *rpcclient.Client) (int64, error) {
+	var wg sync.WaitGroup
+	wg.Add(1)
 	blockcount, err := rpcclient.GetBlockCount()
 	if err != nil {
-		fmt.Println("Viacoind was not running, starting it now")
 		log.Errorf("%s\n", err)
 		// viacoind could not have started yet and it's loadin block index
 		// When this happens we need to make sure it started
-		log.Warn("Viacoind will load block index & sync headers")
-		log.Warn("This can take longer or shorter depending on the server hardware")
+		log.Warn("Viacoind is loading....")
 		go func() {
-			exec.Command("/bin/sh", "start.sh").Run() // blocking. Needs fixtime.Sleep(time.Minute * 5)
+			exec.Command("/bin/sh", "start.sh").Run()
+			wg.Done()
 		}()
-
-		//keep checking every 10 seconds
-		for {
-			_, err := rpcclient.GetBlockCount()
-			if err != nil {
-				log.Warn(err)
-				time.Sleep(time.Second * 10)
-			}
-
-			if err == nil {
-				return blockcount, nil
-			}
-		}
+		wg.Wait()
+		time.Sleep(time.Second * 15)
 	}
+
+	// wait for Daemon to come online, otherwise keep blocking
+	blockcount, _ = waitForDaemon(rpcclient)
+
 	return blockcount, nil
 }
 
@@ -118,11 +109,28 @@ func getBlockCount(rpcclient *rpcclient.Client) (int64, error) {
 // We dont' want viacoind to stop running
 // instead do a return to escape the function
 func SyncCompleted(blockcount int64) bool {
-	tip := 6834361
 	//tip := blockcount
-	if blockcount >= int64(tip) {
+	if blockcount >= int64(TIP) {
 		log.Info("Chain fully synced")
 		return true
 	}
 	return false
+}
+
+func waitForDaemon(rpcclient *rpcclient.Client) (int64, error) {
+	//keep checking every 10 seconds
+	for {
+		blockcount, err := rpcclient.GetBlockCount()
+		if err != nil {
+			log.Warn(err)
+			time.Sleep(time.Second * 10)
+		}
+
+		if err == nil && blockcount > 1 {
+			break
+		}
+	}
+	blockcount, _ := rpcclient.GetBlockCount()
+	fmt.Println("daemon ready")
+	return blockcount, nil
 }

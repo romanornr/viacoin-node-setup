@@ -18,7 +18,7 @@ This to make sure all blocks are saved if memory is a problem and blocks don't g
 #### setup
 ``cd ~/go/src/github.com/``
 
-``https://github.com/romanornr/viacoin-node-setup.git``
+``https://github.com/viacoin/viacoin-node-setup.git``
 
 ``cd viacoin-node-setup``
 

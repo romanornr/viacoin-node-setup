@@ -5,11 +5,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/romanornr/viacoin-node-setup/binaries"
+	"github.com/romanornr/viacoin-node-setup/blockbook"
 	"os/exec"
 	"sync"
 	"time"
-
-	"github.com/romanornr/viacoin-node-setup/binaries"
 
 	"github.com/btcsuite/btcd/rpcclient"
 
@@ -18,18 +18,10 @@ import (
 )
 
 // latest block
-const TIP = 68343610
+var tip int
 
 func main() {
-
-	// homepath := ""
-
-	// if runtime.GOOS == "linux" {
-	// 	homepath = "~/.viacoin2"
-	// }
-
-	// fmt.Println(homepath)
-	//binaries.Download()
+	binaries.Download()
 	binaries.Untar()
 	syncNode()
 
@@ -41,6 +33,7 @@ func syncNode() {
 
 	rpcclient := client.GetInstance()
 	blockcount, _ := getBlockCount(rpcclient)
+	tip = blockbook.GetStatus().Backend.Blocks // get the latest block with the blockbook api
 
 	// blocks added in the sync progress. Close Viacoind and these blocks will be saved
 	// without the need to resync
@@ -52,7 +45,7 @@ func syncNode() {
 			fmt.Errorf("getting blockcount failed: %s \n", err)
 		}
 
-		completion := float32(100) / float32(TIP) * float32(blockcount)
+		completion := float32(100) / float32(tip) * float32(blockcount)
 		log.Infof("viacoin blockcount %d: synced %.2f %s", blockcount, completion, "%")
 		time.Sleep(time.Second * 10)
 
@@ -110,7 +103,7 @@ func getBlockCount(rpcclient *rpcclient.Client) (int64, error) {
 // instead do a return to escape the function
 func SyncCompleted(blockcount int64) bool {
 	//tip := blockcount
-	if blockcount >= int64(TIP) {
+	if blockcount >= int64(tip) {
 		log.Info("Chain fully synced")
 		return true
 	}
@@ -131,6 +124,5 @@ func waitForDaemon(rpcclient *rpcclient.Client) (int64, error) {
 		}
 	}
 	blockcount, _ := rpcclient.GetBlockCount()
-	fmt.Println("daemon ready")
 	return blockcount, nil
 }

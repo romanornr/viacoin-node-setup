@@ -4,7 +4,6 @@
 package binaries
 
 import (
-	"archive/zip"
 	"fmt"
 	"github.com/cavaliercoder/grab"
 	"os"
@@ -50,15 +49,6 @@ Loop:
 	}
 	fmt.Printf("Download saved to ./%v \n", resp.Filename)
 
-	r, err := zip.OpenReader(resp.Filename)
-	if err != nil {
-		//return err
-	}
-	defer func() {
-		if err := r.Close(); err != nil {
-			panic(err)
-		}
-	}()
 }
 
 func Untar() {
